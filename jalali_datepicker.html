@@ -1,0 +1,143 @@
+<!-- jalali_datepicker.html -->
+<link href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css" rel="stylesheet">
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+
+<style>
+    .datepicker-container {
+        position: relative;
+    }
+    
+    .datepicker-format {
+        font-family: 'Vazirmatn', sans-serif;
+        direction: rtl;
+    }
+    
+    .datepicker-input {
+        text-align: right;
+        font-family: 'Vazirmatn', sans-serif;
+    }
+</style>
+
+<script>
+    // مقداردهی اولیه datepicker شمسی
+    function initJalaliDatepicker(inputId, options = {}) {
+        const defaultOptions = {
+            observer: true,
+            format: 'YYYY/MM/DD',
+            altField: `#${inputId}_gregorian`,
+            altFormat: 'YYYY-MM-DD',
+            timePicker: {
+                enabled: false
+            },
+            initialValue: false,
+            autoClose: true,
+            toolbox: {
+                calendarSwitch: {
+                    enabled: false
+                }
+            },
+            onlyTimePicker: false,
+            onlySelectOnDate: false,
+            calendarType: 'persian'
+        };
+        
+        const mergedOptions = { ...defaultOptions, ...options };
+        
+        $(`#${inputId}`).pDatepicker(mergedOptions);
+    }
+    
+    // ایجاد datepicker برای مودال ایجاد منو
+    function initMenuDatepickers() {
+        // تاریخ شروع هفته (شنبه)
+        initJalaliDatepicker('week_start', {
+            initialValueType: 'persian',
+            initialValue: getNextSaturday()
+        });
+        
+        // تاریخ پایان هفته (چهارشنبه)
+        initJalaliDatepicker('week_end', {
+            initialValueType: 'persian',
+            initialValue: getNextWednesday()
+        });
+        
+        // مهلت رزرو (چهارشنبه ۱۸:۰۰)
+        initJalaliDatepicker('reservation_deadline', {
+            initialValueType: 'persian',
+            initialValue: getNextWednesday(),
+            timePicker: {
+                enabled: true,
+                hour: {
+                    enabled: true,
+                    step: 1
+                },
+                minute: {
+                    enabled: true,
+                    step: 1
+                }
+            }
+        });
+    }
+    
+    // محاسبه شنبه آینده
+    function getNextSaturday() {
+        const today = new persianDate();
+        const currentWeekday = today.dayOfWeek();
+        
+        let daysToSaturday;
+        if (currentWeekday === 6) { // شنبه
+            daysToSaturday = 7;
+        } else {
+            daysToSaturday = (6 - currentWeekday + 7) % 7;
+        }
+        
+        return today.add('day', daysToSaturday).format('YYYY/MM/DD');
+    }
+    
+    // محاسبه چهارشنبه آینده
+    function getNextWednesday() {
+        const today = new persianDate();
+        const currentWeekday = today.dayOfWeek();
+        
+        let daysToWednesday;
+        if (currentWeekday <= 2) { // اگر قبل از چهارشنبه هستیم
+            daysToWednesday = (2 - currentWeekday + 7) % 7;
+        } else { // اگر بعد از چهارشنبه هستیم
+            daysToWednesday = (2 - currentWeekday + 14) % 7;
+        }
+        
+        return today.add('day', daysToWednesday).format('YYYY/MM/DD');
+    }
+    
+    // تبدیل تاریخ شمسی به میلادی برای ارسال به سرور
+    function convertJalaliToGregorian(jalaliDate) {
+        const pd = new persianDate(jalaliDate);
+        return pd.toCalendar('gregorian').format('YYYY-MM-DD');
+    }
+    
+    // نمایش تاریخ شمسی جاری
+    function showCurrentJalaliDate() {
+        const now = new persianDate();
+        const element = document.getElementById('current-jalali-date');
+        if (element) {
+            element.textContent = now.format('dddd، D MMMM YYYY');
+        }
+    }
+    
+    // اجرا پس از بارگذاری صفحه
+    document.addEventListener('DOMContentLoaded', function() {
+        showCurrentJalaliDate();
+        
+        // بارگذاری jQuery اگر وجود ندارد
+        if (typeof jQuery === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
+            script.onload = function() {
+                initMenuDatepickers();
+            };
+            document.head.appendChild(script);
+        } else {
+            initMenuDatepickers();
+        }
+    });
+</script>

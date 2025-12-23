@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Vazirmatn', sans-serif; }
+        
+        /* استایل مخصوص جدول */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 1000px;
+        }
+        
+        th {
+            white-space: nowrap;
+        }
+        
+        /* انیمیشن‌ها */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* استایل کارت‌ها */
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- نوار بالایی -->
+    <nav class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- لوگو و عنوان -->
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <span class="text-xl">👨‍💼</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">پنل مدیریت سیستم</h1>
+                        <p class="text-sm opacity-90">خوش آمدید {{ user.name }}</p>
+                    </div>
+                </div>
+                
+                <!-- منوی سمت چپ -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-2 text-sm">
+                        <span class="bg-white/20 px-3 py-1 rounded-full">مدیر سیستم</span>
+                        <span class="opacity-90">{{ user.name }}</span>
+                    </div>
+                    <a href="/logout" 
+                       class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition duration-300 flex items-center">
+                        <span class="ml-2">🚪</span>
+                        خروج
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- محتوای اصلی -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- آمار سریع -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="stat-card bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-3xl font-bold text-gray-800">{{ stats.total_users }}</div>
+                <div class="text-gray-600">کاربران فعال</div>
+            </div>
+            <div class="text-3xl text-blue-500">👥</div>
+        </div>
+    </div>
+    
+    <div class="stat-card bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-3xl font-bold text-gray-800">{{ stats.total_reservations }}</div>
+                <div class="text-gray-600">رزروهای این هفته</div>
+            </div>
+            <div class="text-3xl text-green-500">📋</div>
+        </div>
+    </div>
+    
+    <div class="stat-card bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-3xl font-bold text-gray-800">
+                    {{ "%.0f"|format(stats.total_company_share / 1000) }}
+                </div>
+                <div class="text-gray-600">سهم شرکت (هزار تومان)</div>
+            </div>
+            <div class="text-3xl text-purple-500">💰</div>
+        </div>
+    </div>
+    
+    <div class="stat-card bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-3xl font-bold text-gray-800">۱۸:۰۰</div>
+                <div class="text-gray-600">پایان مهلت رزرو</div>
+            </div>
+            <div class="text-3xl text-red-500">⏰</div>
+        </div>
+    </div>
+</div>
+
+        <!-- هشدار مهلت رزرو -->
+        {% if weekly_menu %}
+        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-yellow-800 mb-2">⏰ مهلت رزرو این هفته</h3>
+                    <p class="text-yellow-700">
+                        کاربران تا 
+                        <strong class="text-red-600">{{ weekly_menu.reservation_deadline.split()[0] }} ساعت ۱۸:۰۰</strong>
+                        فرصت دارند غذای هفته آینده را رزرو کنند.
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="bg-red-100 border border-red-300 px-6 py-3 rounded-lg">
+                        <div class="text-2xl font-bold text-red-700">
+                            {{ weekly_menu.reservation_deadline.split()[0] }} - ۱۸:۰۰
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- تب‌های مدیریت -->
+        <div class="mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8">
+                    <button id="tab-users" 
+                            class="py-4 px-1 border-b-2 border-blue-500 font-medium text-blue-600">
+                        👥 مدیریت کاربران
+                    </button>
+                    <button id="tab-menu" 
+                            class="py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700">
+                        🍽️ منوی هفتگی
+                    </button>
+                    <button id="tab-reports" 
+                            class="py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700">
+                        📊 گزارش‌گیری
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- محتوای تب‌ها -->
+        
+        <!-- تب مدیریت کاربران -->
+        <div id="content-users" class="fade-in">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">لیست کاربران سیستم</h2>
+                        <button onclick="showAddUserModal()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                            <span class="ml-2">➕</span>
+                            افزودن کاربر جدید
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    شماره پرسنلی
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    نام کامل
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ایمیل
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    دپارتمان
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    نقش
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    وضعیت
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    عملیات
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for user in users %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ user.employee_id }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ user.full_name }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ user.email }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ user.department or 'تعریف نشده' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if user.is_admin %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                        مدیر سیستم
+                                    </span>
+                                    {% else %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        کاربر عادی
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if user.is_active %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        فعال
+                                    </span>
+                                    {% else %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        غیرفعال
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button onclick="editUser({{ user.id }})" 
+                                            class="text-blue-600 hover:text-blue-900 ml-4">
+                                        ویرایش
+                                    </button>
+                                    <button onclick="resetPassword({{ user.id }}, '{{ user.full_name }}')" 
+                                            class="text-yellow-600 hover:text-yellow-900 ml-4">
+                                        بازنشانی رمز
+                                    </button>
+                                    <button onclick="toggleUserStatus({{ user.id }}, {{ user.is_active }})" 
+                                            class="text-red-600 hover:text-red-900 ml-4">
+                                        {{ 'غیرفعال' if user.is_active else 'فعال' }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- تب منوی هفتگی -->
+        <div id="content-menu" class="fade-in hidden">
+            {% if weekly_menu %}
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800">منوی هفته جاری</h2>
+                            <p class="text-gray-600">
+                                از {{ weekly_menu.week_start }} تا {{ weekly_menu.week_end }}
+                            </p>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button onclick="showAddFoodModal()" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                <span class="ml-2">🍽️</span>
+                                افزودن غذا
+                            </button>
+                            <button onclick="generateWeeklyReport()" 
+                                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                <span class="ml-2">📊</span>
+                                گزارش هفتگی
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    روز
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    نام غذا
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    قیمت کامل
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    سهم کاربر (۶۰٪)
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    سهم شرکت (۴۰٪)
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ظرفیت
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    رزرو شده
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    وضعیت
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    عملیات
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for item in weekly_menu.items %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ item.day_of_week }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ item.food_name }}</div>
+                                    {% if item.description %}
+                                    <div class="text-xs text-gray-500 mt-1">{{ item.description }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">
+                                        {{ "{:,}".format(item.full_price|int) }} تومان
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-bold text-green-600">
+                                        {{ "{:,}".format(item.user_price|int) }} تومان
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-blue-600">
+                                        {{ "{:,}".format(item.company_share|int) }} تومان
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ item.capacity }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5 mr-3">
+                                            <div class="bg-blue-600 h-2.5 rounded-full" 
+                                                 style="width: {{ (item.reserved_count / item.capacity * 100) if item.capacity > 0 else 0 }}%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium {% if item.reserved_count == item.capacity %}text-red-600{% else %}text-gray-700{% endif %}">
+                                            {{ item.reserved_count }}/{{ item.capacity }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if item.reserved_count == item.capacity %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        تکمیل
+                                    </span>
+                                    {% elif item.reserved_count >= item.capacity * 0.8 %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        پر شدن
+                                    </span>
+                                    {% else %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        موجود
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button onclick="editFood({{ item.id }})" 
+                                            class="text-blue-600 hover:text-blue-900 ml-4">
+                                        ویرایش
+                                    </button>
+                                    <button onclick="updateCapacity({{ item.id }})" 
+                                            class="text-green-600 hover:text-green-900 ml-4">
+                                        افزایش ظرفیت
+                                    </button>
+                                    {% if item.extra_food %}
+                                    <span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded mr-2">
+                                        غذای اضافی
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-xl shadow-md p-8 text-center">
+                <div class="text-5xl mb-4 text-gray-300">🍽️</div>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">منوی هفته جاری وجود ندارد</h3>
+                <p class="text-gray-600 mb-6">لطفاً منوی هفته جاری را ایجاد کنید.</p>
+                <button onclick="createWeeklyMenu()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+                    ایجاد منوی هفته جدید
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- تب گزارش‌گیری -->
+        <div id="content-reports" class="fade-in hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- گزارش مالی -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">💰 گزارش مالی هفته</h3>
+                    {% if weekly_menu %}
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">کل درآمد:</span>
+                            <span class="font-bold text-green-600">
+                                {{ "{:,}".format(weekly_menu.items|sum(attribute='full_price') * weekly_menu.items|sum(attribute='reserved_count')) }} تومان
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">سهم شرکت (۴۰٪):</span>
+                            <span class="font-bold text-blue-600">
+                                {{ "{:,}".format(weekly_menu.items|sum(attribute='company_share') * weekly_menu.items|sum(attribute='reserved_count')) }} تومان
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">دریافتی از کاربران (۶۰٪):</span>
+                            <span class="font-bold text-purple-600">
+                                {{ "{:,}".format(weekly_menu.items|sum(attribute='user_price') * weekly_menu.items|sum(attribute='reserved_count')) }} تومان
+                            </span>
+                        </div>
+                        <div class="pt-4 border-t">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">تعداد کل رزروها:</span>
+                                <span class="font-bold">
+                                    {{ weekly_menu.items|sum(attribute='reserved_count') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-4">اطلاعاتی برای نمایش وجود ندارد</p>
+                    {% endif %}
+                </div>
+                
+                <!-- گزارش آماری -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📊 آمار مشارکت</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-600">مشارکت کاربران:</span>
+                                <span class="font-bold">
+                                    {% if users|length > 0 %}
+                                        {{ ((weekly_menu.items|sum(attribute='reserved_count') / (users|length * 4)) * 100)|round(1) if weekly_menu else 0 }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-green-600 h-2.5 rounded-full" 
+                                     style="width: {{ ((weekly_menu.items|sum(attribute='reserved_count') / (users|length * 4)) * 100) if weekly_menu and users|length > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t">
+                            <h4 class="font-medium text-gray-700 mb-2">پرطرفدارترین غذاها:</h4>
+                            {% if weekly_menu %}
+                                {% set popular_foods = weekly_menu.items|sort(attribute='reserved_count', reverse=true)|list %}
+                                {% for food in popular_foods[:3] %}
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">{{ food.food_name }}</span>
+                                    <span class="text-sm font-bold">{{ food.reserved_count }} رزرو</span>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- گزارش روزانه -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📅 رزرو به تفکیک روز</h3>
+                    <div class="space-y-3">
+                        {% if weekly_menu %}
+                            {% set days = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه'] %}
+                            {% for day in days %}
+                                {% set day_items = weekly_menu.items|selectattr('day_of_week', 'equalto', day)|list %}
+                                {% set day_reservations = day_items|sum(attribute='reserved_count') %}
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-gray-600">{{ day }}:</span>
+                                        <span class="font-bold">{{ day_reservations }} رزرو</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-600 h-2 rounded-full" 
+                                             style="width: {{ (day_reservations / (weekly_menu.items|sum(attribute='reserved_count')) * 100) if weekly_menu.items|sum(attribute='reserved_count') > 0 else 0 }}%"></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-500 text-center py-4">اطلاعاتی برای نمایش وجود ندارد</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- دکمه‌های خروجی -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📤 خروجی گزارش‌ها</h3>
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="exportToExcel()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center">
+                        <span class="ml-2">📄</span>
+                        خروجی Excel
+                    </button>
+                    <button onclick="generatePDF()" 
+                            class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg flex items-center">
+                        <span class="ml-2">📊</span>
+                        خروجی PDF
+                    </button>
+                    <button onclick="sendDailyReport()" 
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg flex items-center">
+                        <span class="ml-2">📧</span>
+                        ارسال به ایمیل
+                    </button>
+                    <button onclick="printReport()" 
+                            class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center">
+                        <span class="ml-2">🖨️</span>
+                        چاپ گزارش
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال افزودن کاربر -->
+    <div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">➕ افزودن کاربر جدید</h3>
+            </div>
+            
+            <div class="p-6">
+                <form id="addUserForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">شماره پرسنلی *</label>
+                            <input type="text" name="employee_id" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">نام کامل *</label>
+                            <input type="text" name="full_name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">ایمیل *</label>
+                            <input type="email" name="email" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">رمز عبور *</label>
+                            <input type="password" name="password" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">دپارتمان</label>
+                            <select name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="فروش">فروش</option>
+                                <option value="مالی">مالی</option>
+                                <option value="پشتیبانی">پشتیبانی</option>
+                                <option value="تولید">تولید</option>
+                                <option value="IT">IT</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_admin" id="is_admin" 
+                                   class="ml-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            <label for="is_admin" class="text-gray-700">دسترسی مدیر سیستم</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <button type="button" onclick="hideAddUserModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-lg">
+                            انصراف
+                        </button>
+                        <button type="submit" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                            ایجاد کاربر
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- اسکریپت‌های JavaScript -->
+    <script>
+        // مدیریت تب‌ها
+        document.getElementById('tab-users').addEventListener('click', () => {
+            switchTab('users');
+        });
+        
+        document.getElementById('tab-menu').addEventListener('click', () => {
+            switchTab('menu');
+        });
+        
+        document.getElementById('tab-reports').addEventListener('click', () => {
+            switchTab('reports');
+        });
+        
+        function switchTab(tabName) {
+            // به‌روزرسانی تب‌ها
+            ['users', 'menu', 'reports'].forEach(tab => {
+                const tabBtn = document.getElementById(`tab-${tab}`);
+                const content = document.getElementById(`content-${tab}`);
+                
+                if (tab === tabName) {
+                    tabBtn.classList.remove('border-transparent', 'text-gray-500');
+                    tabBtn.classList.add('border-blue-500', 'text-blue-600');
+                    content.classList.remove('hidden');
+                } else {
+                    tabBtn.classList.remove('border-blue-500', 'text-blue-600');
+                    tabBtn.classList.add('border-transparent', 'text-gray-500');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+        
+        // مدیریت مودال افزودن کاربر
+        function showAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('hidden');
+            document.getElementById('addUserModal').classList.add('flex');
+        }
+        
+        function hideAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('flex');
+            document.getElementById('addUserModal').classList.add('hidden');
+        }
+        
+        // ارسال فرم افزودن کاربر
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await axios.post('/api/create_user', data);
+                
+                if (response.data.success) {
+                    alert('کاربر با موفقیت ایجاد شد');
+                    hideAddUserModal();
+                    location.reload();
+                } else {
+                    alert('خطا: ' + response.data.message);
+                }
+            } catch (error) {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
+        
+        // سایر توابع
+        function editUser(userId) {
+            alert('ویرایش کاربر با ID: ' + userId);
+            // در نسخه بعدی پیاده‌سازی می‌شود
+        }
+        
+        function resetPassword(userId, userName) {
+            if (confirm(`آیا مطمئن هستید که می‌خواهید رمز عبور ${userName} را بازنشانی کنید؟`)) {
+                alert('رمز عبور بازنشانی شد (رمز جدید: User@123!)');
+                // در نسخه بعدی پیاده‌سازی می‌شود
+            }
+        }
+        
+        function toggleUserStatus(userId, isActive) {
+            const action = isActive ? 'غیرفعال' : 'فعال';
+            if (confirm(`آیا مطمئن هستید که می‌خواهید این کاربر را ${action} کنید؟`)) {
+                alert(`کاربر ${action} شد`);
+                location.reload();
+            }
+        }
+        
+        function editFood(foodId) {
+            alert('ویرایش غذا با ID: ' + foodId);
+        }
+        
+        function updateCapacity(foodId) {
+            const newCapacity = prompt('ظرفیت جدید را وارد کنید:');
+            if (newCapacity && !isNaN(newCapacity)) {
+                alert('ظرفیت به ' + newCapacity + ' تغییر یافت');
+                location.reload();
+            }
+        }
+        
+        function createWeeklyMenu() {
+            if (confirm('آیا می‌خواهید منوی هفته جدید ایجاد کنید؟')) {
+                alert('منوی هفته جدید ایجاد شد');
+                location.reload();
+            }
+        }
+        
+        function generateWeeklyReport() {
+            alert('گزارش هفتگی در حال تولید...');
+        }
+        
+        function exportToExcel() {
+            alert('خروجی Excel در حال تولید...');
+        }
+        
+        function generatePDF() {
+            alert('PDF در حال تولید...');
+        }
+        
+        function sendDailyReport() {
+            alert('گزارش روزانه ارسال شد');
+        }
+        
+        function printReport() {
+            window.print();
+        }
+        
+        // بارگذاری اولیه
+        document.addEventListener('DOMContentLoaded', () => {
+            // مقداردهی اولیه
+            switchTab('users');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+<!-- بعد از tailwind -->
+<link href="https://cdn.jsdelivr.net/gh/persian-tools/persian-datepicker@latest/dist/css/persian-datepicker.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/persian-tools/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@latest/dist/persian-date.min.js"></script>
+
+<!-- نمایش تاریخ جاری شمسی -->
+<div class="text-center mb-4">
+    <div id="current-jalali-date" class="text-lg font-bold text-gray-700"></div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- هدر -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+<!-- در قسمت بالای صفحه، بعد از nav این کد را اضافه کنید -->
+<div class="container mx-auto px-4 mt-4">
+    <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <div class="text-center md:text-right">
+                <div id="current-jalali-date" class="text-xl font-bold text-blue-800">
+                    در حال بارگذاری تاریخ...
+                </div>
+                <div class="text-blue-600 mt-1">
+                    سیستم با تقویم شمسی
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <div class="bg-white border border-blue-300 rounded-lg px-4 py-2">
+                    <div class="text-sm text-gray-600">هفته کاری</div>
+                    <div class="font-bold text-blue-700">شنبه تا چهارشنبه</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">👨‍💼</span>
+                    <div>
+                        <h1 class="text-xl font-bold">پنل مدیریت سیستم</h1>
+                        <p class="text-sm opacity-90">خوش آمدید {{ user.name }}</p>
+                    </div>
+                </div>
+                <a href="/logout" 
+                   class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition">
+                    خروج
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- محتوا -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- دکمه‌های اصلی -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- ایجاد منوی هفتگی -->
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📅 ایجاد منوی هفتگی جدید</h2>
+                <p class="text-gray-600 mb-4">ایجاد منوی جدید برای هفته آینده</p>
+                <button onclick="showCreateMenuModal()"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition">
+                    🍽️ ایجاد منوی هفتگی جدید
+                </button>
+            </div>
+            
+            <!-- ایجاد کاربر جدید -->
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">👥 ایجاد کاربر جدید</h2>
+                <p class="text-gray-600 mb-4">افزودن کاربر جدید به سیستم</p>
+                <button onclick="showCreateUserModal()"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition">
+                    ➕ ایجاد کاربر جدید
+                </button>
+            </div>
+        </div>
+
+        <!-- آمار -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="text-3xl font-bold text-blue-600">{{ stats.total_users }}</div>
+                <div class="text-gray-600 mt-2">کاربران فعال</div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="text-3xl font-bold text-green-600">{{ stats.total_reservations }}</div>
+                <div class="text-gray-600 mt-2">رزروهای هفته</div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="text-3xl font-bold text-purple-600">
+                    {{ stats.total_company_share|int }}
+                </div>
+                <div class="text-gray-600 mt-2">سهم شرکت (تومان)</div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="text-3xl font-bold text-red-600">۱۸:۰۰</div>
+                <div class="text-gray-600 mt-2">پایان مهلت</div>
+            </div>
+        </div>
+
+        <!-- تب‌های مدیریت -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8">
+                    <button id="tab-users" 
+                            onclick="switchTab('users')"
+                            class="py-4 px-1 border-b-2 border-blue-500 font-medium text-blue-600">
+                        👥 مدیریت کاربران
+                    </button>
+                    <button id="tab-menu" 
+                            onclick="switchTab('menu')"
+                            class="py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700">
+                        🍽️ مدیریت منو
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- محتوای تب‌ها -->
+        
+        <!-- تب کاربران -->
+        <div id="content-users">
+            <div class="bg-white rounded-xl shadow mb-8">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-xl font-bold text-gray-800">کاربران سیستم</h2>
+                </div>
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="p-3 text-right">نام</th>
+                                    <th class="p-3 text-right">ایمیل</th>
+                                    <th class="p-3 text-right">دپارتمان</th>
+                                    <th class="p-3 text-right">نقش</th>
+                                    <th class="p-3 text-right">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-3">{{ u.full_name }}</td>
+                                    <td class="p-3">{{ u.email }}</td>
+                                    <td class="p-3">{{ u.department or '-' }}</td>
+                                    <td class="p-3">
+                                        {% if u.is_admin %}
+                                        <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                                            مدیر
+                                        </span>
+                                        {% else %}
+                                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                                            کاربر
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-3">
+                                        <button onclick="editUser({{ u.id }})"
+                                                class="text-blue-600 hover:text-blue-800 text-sm">
+                                            ویرایش
+                                        </button>
+                                        <button onclick="resetPassword({{ u.id }})"
+                                                class="text-yellow-600 hover:text-yellow-800 text-sm mr-3">
+                                            بازنشانی رمز
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تب منو -->
+        <div id="content-menu" class="hidden">
+            {% if weekly_menu %}
+            <div class="bg-white rounded-xl shadow mb-8">
+                <div class="px-6 py-4 border-b">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800">منوی هفته جاری</h2>
+                            <p class="text-gray-600 text-sm">
+                                {{ weekly_menu.week_start }} تا {{ weekly_menu.week_end }}
+                            </p>
+                        </div>
+                        <button onclick="showAddFoodModal({{ weekly_menu.id }})"
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                            ➕ افزودن غذا
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- روزهای هفته -->
+                    {% set days = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه'] %}
+                    {% for day in days %}
+                    <div class="mb-8">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="ml-2">📅</span>
+                            {{ day }}
+                            <button onclick="showAddFoodModal({{ weekly_menu.id }}, '{{ day }}')"
+                                    class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg mr-auto">
+                                + افزودن غذا
+                            </button>
+                        </h3>
+                        
+                        {% set day_foods = [] %}
+                        {% for item in menu_items if item.day_of_week == day %}
+                            {% set _ = day_foods.append(item) %}
+                        {% endfor %}
+                        
+                        {% if day_foods %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {% for food in day_foods %}
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-bold text-gray-800">{{ food.food_name }}</h4>
+                                        {% if food.description %}
+                                        <p class="text-sm text-gray-600 mt-1">{{ food.description }}</p>
+                                        {% endif %}
+                                        <div class="mt-2 space-y-1">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">قیمت کامل:</span>
+                                                <span class="font-bold">{{ food.full_price|int }} تومان</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">سهم کاربر:</span>
+                                                <span class="font-bold text-green-600">{{ food.user_price|int }} تومان</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">سهم شرکت:</span>
+                                                <span class="text-blue-600">{{ food.company_share|int }} تومان</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">ظرفیت:</span>
+                                                <span class="{% if food.reserved_count >= food.capacity %}text-red-600{% else %}text-gray-700{% endif %}">
+                                                    {{ food.reserved_count }}/{{ food.capacity }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col space-y-2">
+                                        <button onclick="editFood({{ food.id }})"
+                                                class="text-blue-600 hover:text-blue-800 text-sm">
+                                            ویرایش
+                                        </button>
+                                        <button onclick="deleteFood({{ food.id }})"
+                                                class="text-red-600 hover:text-red-800 text-sm">
+                                            حذف
+                                        </button>
+                                        {% if food.extra_food %}
+                                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                            غذای اضافی
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 border border-dashed border-gray-300 rounded-lg">
+                            <p class="text-gray-500">هنوز غذایی برای این روز اضافه نشده است.</p>
+                            <button onclick="showAddFoodModal({{ weekly_menu.id }}, '{{ day }}')"
+                                    class="mt-2 text-blue-600 hover:text-blue-800">
+                                کلیک کنید برای افزودن غذا
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-xl shadow p-8 text-center">
+                <div class="text-5xl mb-4 text-gray-300">🍽️</div>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">منوی هفته جاری وجود ندارد</h3>
+                <p class="text-gray-600 mb-6">برای شروع، یک منوی هفتگی جدید ایجاد کنید.</p>
+                <button onclick="showCreateMenuModal()"
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg">
+                    ایجاد منوی هفته جدید
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+   <!-- مودال ایجاد منوی هفتگی -->
+<div id="createMenuModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">📅 ایجاد منوی هفتگی جدید (شمسی)</h3>
+        </div>
+        
+        <div class="p-6">
+            <form id="createMenuForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">تاریخ شروع هفته (شنبه) *</label>
+                        <div class="datepicker-container">
+                            <input type="text" id="week_start" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg datepicker-input"
+                                   placeholder="1402/10/01" readonly>
+                            <input type="hidden" name="week_start" id="week_start_gregorian">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2">تاریخ پایان هفته (چهارشنبه) *</label>
+                        <div class="datepicker-container">
+                            <input type="text" id="week_end" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg datepicker-input"
+                                   placeholder="1402/10/05" readonly>
+                            <input type="hidden" name="week_end" id="week_end_gregorian">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2">مهلت رزرو (چهارشنبه ۱۸:۰۰) *</label>
+                        <div class="datepicker-container">
+                            <input type="text" id="reservation_deadline" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg datepicker-input"
+                                   placeholder="1402/10/05 ۱۸:۰۰" readonly>
+                            <input type="hidden" name="reservation_deadline" id="reservation_deadline_gregorian">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" onclick="hideModal('createMenuModal')" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg">
+                        انصراف
+                    </button>
+                    <button type="submit" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg">
+                        ایجاد منو
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- مودال ایجاد کاربر -->
+    <div id="createUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">👥 ایجاد کاربر جدید</h3>
+            </div>
+            
+            <div class="p-6">
+                <form id="createUserForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">شماره پرسنلی *</label>
+                            <input type="text" name="employee_id" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="EMP001">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">نام کامل *</label>
+                            <input type="text" name="full_name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="رضا محمدی">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">ایمیل *</label>
+                            <input type="email" name="email" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="example@company.com">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">رمز عبور *</label>
+                            <input type="password" name="password" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="حداقل ۸ کاراکتر">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">دپارتمان</label>
+                            <select name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="فروش">فروش</option>
+                                <option value="مالی">مالی</option>
+                                <option value="پشتیبانی">پشتیبانی</option>
+                                <option value="تولید">تولید</option>
+                                <option value="IT">IT</option>
+                                <option value="مدیریت">مدیریت</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_admin" id="is_admin" 
+                                   class="ml-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            <label for="is_admin" class="text-gray-700">دسترسی مدیر سیستم</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <button type="button" onclick="hideModal('createUserModal')" 
+                                class="px-4 py-2 border border-gray-300 rounded-lg">
+                            انصراف
+                        </button>
+                        <button type="submit" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                            ایجاد کاربر
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال افزودن غذا -->
+    <div id="addFoodModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">🍽️ افزودن غذا به منو</h3>
+            </div>
+            
+            <div class="p-6">
+                <form id="addFoodForm">
+                    <input type="hidden" name="weekly_menu_id" id="food_weekly_menu_id">
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">روز هفته *</label>
+                            <select name="day_of_week" required 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg" id="food_day_of_week">
+                                <option value="دوشنبه">دوشنبه</option>
+                                <option value="سه‌شنبه">سه‌شنبه</option>
+                                <option value="چهارشنبه">چهارشنبه</option>
+                                <option value="پنجشنبه">پنجشنبه</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">نام غذا *</label>
+                            <input type="text" name="food_name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="مثلاً: قیمه بادمجان">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">توضیحات</label>
+                            <textarea name="description" 
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                      rows="2" placeholder="توضیحات غذا"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">قیمت کامل (تومان) *</label>
+                            <input type="number" name="full_price" required min="1000" step="1000"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="50000">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">ظرفیت *</label>
+                            <input type="number" name="capacity" required min="1"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="50">
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="extra_food" id="extra_food" 
+                                   class="ml-2 h-4 w-4 text-purple-600 border-gray-300 rounded"
+                                   onchange="toggleExtraFoodPrice()">
+                            <label for="extra_food" class="text-gray-700">غذای اضافی</label>
+                        </div>
+                        
+                        <div id="extra_food_price_container" class="hidden">
+                            <label class="block text-gray-700 mb-2">قیمت غذای اضافی (تومان)</label>
+                            <input type="number" name="extra_food_price" min="1000" step="1000"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                   placeholder="قیمت کامل برای غذای اضافی">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <button type="button" onclick="hideModal('addFoodModal')" 
+                                class="px-4 py-2 border border-gray-300 rounded-lg">
+                            انصراف
+                        </button>
+                        <button type="submit" 
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg">
+                            افزودن غذا
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // مدیریت تب‌ها
+        function switchTab(tabName) {
+            // به‌روزرسانی تب‌ها
+            ['users', 'menu'].forEach(tab => {
+                const tabBtn = document.getElementById(`tab-${tab}`);
+                const content = document.getElementById(`content-${tab}`);
+                
+                if (tab === tabName) {
+                    tabBtn.classList.remove('border-transparent', 'text-gray-500');
+                    tabBtn.classList.add('border-blue-500', 'text-blue-600');
+                    content.classList.remove('hidden');
+                } else {
+                    tabBtn.classList.remove('border-blue-500', 'text-blue-600');
+                    tabBtn.classList.add('border-transparent', 'text-gray-500');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+        
+        // مدیریت مودال‌ها
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('flex');
+            document.getElementById(modalId).classList.add('hidden');
+        }
+        
+        function showCreateMenuModal() {
+            showModal('createMenuModal');
+        }
+        
+        function showCreateUserModal() {
+            showModal('createUserModal');
+        }
+        
+        function showAddFoodModal(weeklyMenuId = null, dayOfWeek = null) {
+            if (weeklyMenuId) {
+                document.getElementById('food_weekly_menu_id').value = weeklyMenuId;
+            }
+            if (dayOfWeek) {
+                document.getElementById('food_day_of_week').value = dayOfWeek;
+            }
+            showModal('addFoodModal');
+        }
+        
+        // کنترل غذای اضافی
+        function toggleExtraFoodPrice() {
+            const container = document.getElementById('extra_food_price_container');
+            const checkbox = document.getElementById('extra_food');
+            
+            if (checkbox.checked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+        
+        // ارسال فرم ایجاد منو
+        document.getElementById('createMenuForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await axios.post('/api/create_weekly_menu', data);
+                
+                if (response.data.success) {
+                    alert(response.data.message);
+                    hideModal('createMenuModal');
+                    location.reload();
+                } else {
+                    alert('خطا: ' + response.data.message);
+                }
+            } catch (error) {
+                alert('خطا در ارتباط با سرور');
+                console.error(error);
+            }
+        });
+        
+        // ارسال فرم ایجاد کاربر
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.is_admin = document.getElementById('is_admin').checked;
+            
+            try {
+                const response = await axios.post('/api/create_user', data);
+                
+                if (response.data.success) {
+                    alert(response.data.message);
+                    hideModal('createUserModal');
+                    location.reload();
+                } else {
+                    alert('خطا: ' + response.data.message);
+                }
+            } catch (error) {
+                alert('خطا در ارتباط با سرور');
+                console.error(error);
+            }
+        });
+        
+        // ارسال فرم افزودن غذا
+        document.getElementById('addFoodForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.extra_food = document.getElementById('extra_food').checked;
+            
+            // تبدیل اعداد
+            data.full_price = parseFloat(data.full_price);
+            data.capacity = parseInt(data.capacity);
+            if (data.extra_food_price) {
+                data.extra_food_price = parseFloat(data.extra_food_price);
+            }
+            
+            try {
+                const response = await axios.post('/api/add_menu_item', data);
+                
+                if (response.data.success) {
+                    alert(response.data.message);
+                    hideModal('addFoodModal');
+                    location.reload();
+                } else {
+                    alert('خطا: ' + response.data.message);
+                }
+            } catch (error) {
+                alert('خطا در ارتباط با سرور');
+                console.error(error);
+            }
+        });
+        
+        // سایر توابع
+        function editUser(userId) {
+            alert('ویرایش کاربر با ID: ' + userId + '\nاین ویژگی در نسخه بعدی اضافه خواهد شد.');
+        }
+        
+        function resetPassword(userId) {
+            if (confirm('آیا می‌خواهید رمز عبور این کاربر را بازنشانی کنید؟')) {
+                alert('رمز عبور بازنشانی شد (رمز جدید: User@123!)');
+                // در نسخه بعدی پیاده‌سازی می‌شود
+            }
+        }
+        
+        function editFood(foodId) {
+            alert('ویرایش غذا با ID: ' + foodId + '\nاین ویژگی در نسخه بعدی اضافه خواهد شد.');
+        }
+        
+        function deleteFood(foodId) {
+            if (confirm('آیا از حذف این غذا مطمئن هستید؟')) {
+                alert('غذا حذف شد');
+                // در نسخه بعدی پیاده‌سازی می‌شود
+            }
+        }
+        
+        // بارگذاری اولیه
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('users');
+        });
+    </script>
+// در انتهای admin_simple.html قبل از </body> اضافه کنید
+<script>
+    // نمایش تاریخ شمسی جاری
+    function showCurrentJalaliDate() {
+        // روزهای هفته به فارسی
+        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+        
+        // ماه‌های شمسی
+        const months = [
+            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+        ];
+        
+        // تاریخ جاری میلادی
+        const now = new Date();
+        
+        // الگوریتم تبدیل میلادی به شمسی
+        const gy = now.getFullYear();
+        const gm = now.getMonth() + 1;
+        const gd = now.getDate();
+        
+        // تبدیل به شمسی
+        const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+        let jy;
+        if (gy > 1600) {
+            jy = 979;
+            gy -= 1600;
+        } else {
+            jy = 0;
+            gy -= 621;
+        }
+        
+        let gy2 = (gm > 2) ? (gy + 1) : gy;
+        let days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + 
+                   (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+        jy += 33 * parseInt(days / 12053);
+        days %= 12053;
+        jy += 4 * parseInt(days / 1461);
+        days %= 1461;
+        
+        if (days > 365) {
+            jy += parseInt((days - 1) / 365);
+            days = (days - 1) % 365;
+        }
+        
+        let jm, jd;
+        if (days < 186) {
+            jm = 1 + parseInt(days / 31);
+            jd = 1 + (days % 31);
+        } else {
+            jm = 7 + parseInt((days - 186) / 30);
+            jd = 1 + ((days - 186) % 30);
+        }
+        
+        // نام روز هفته
+        const dayOfWeek = now.getDay(); // 0=یکشنبه, 1=دوشنبه, ..., 6=شنبه
+        // تطبیق با سیستم شمسی (شنبه=0)
+        const jalaliDayOfWeek = (dayOfWeek + 1) % 7;
+        const dayName = days[jalaliDayOfWeek];
+        
+        // نام ماه
+        const monthName = months[jm - 1];
+        
+        // نمایش در صفحه
+        const element = document.getElementById('current-jalali-date');
+        if (element) {
+            element.textContent = `${dayName}، ${jd} ${monthName} ${jy}`;
+        }
+    }
+    
+    // تبدیل تاریخ میلادی به شمسی برای نمایش
+    function formatJalaliDate(dateStr) {
+        if (!dateStr) return '';
+        
+        try {
+            // اگر تاریخ شامل زمان است
+            const datePart = dateStr.split(' ')[0];
+            const [year, month, day] = datePart.split('-').map(Number);
+            
+            const date = new Date(year, month - 1, day);
+            return gregorianToJalali(date);
+        } catch (e) {
+            return dateStr;
+        }
+    }
+    
+    // تبدیل میلادی به شمسی
+    function gregorianToJalali(gregorianDate) {
+        const gd = gregorianDate.getDate();
+        const gm = gregorianDate.getMonth() + 1;
+        const gy = gregorianDate.getFullYear();
+        
+        const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+        let jy;
+        if (gy > 1600) {
+            jy = 979;
+            gy -= 1600;
+        } else {
+            jy = 0;
+            gy -= 621;
+        }
+        
+        let gy2 = (gm > 2) ? (gy + 1) : gy;
+        let days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + 
+                   (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+        jy += 33 * parseInt(days / 12053);
+        days %= 12053;
+        jy += 4 * parseInt(days / 1461);
+        days %= 1461;
+        
+        if (days > 365) {
+            jy += parseInt((days - 1) / 365);
+            days = (days - 1) % 365;
+        }
+        
+        let jm, jd;
+        if (days < 186) {
+            jm = 1 + parseInt(days / 31);
+            jd = 1 + (days % 31);
+        } else {
+            jm = 7 + parseInt((days - 186) / 30);
+            jd = 1 + ((days - 186) % 30);
+        }
+        
+        return `${jy}/${jm.toString().padStart(2, '0')}/${jd.toString().padStart(2, '0')}`;
+    }
+    
+    // وقتی صفحه لود شد
+    document.addEventListener('DOMContentLoaded', function() {
+        // نمایش تاریخ جاری
+        showCurrentJalaliDate();
+        
+        // به‌روزرسانی تاریخ هر دقیقه
+        setInterval(showCurrentJalaliDate, 60000);
+        
+        // تبدیل تاریخ‌های موجود در صفحه به شمسی
+        convertPageDatesToJalali();
+    });
+    
+    // تبدیل تمام تاریخ‌های صفحه به شمسی
+    function convertPageDatesToJalali() {
+        // تاریخ‌های منو
+        const dateElements = document.querySelectorAll('[data-gregorian-date]');
+        dateElements.forEach(element => {
+            const gregorianDate = element.getAttribute('data-gregorian-date');
+            const jalaliDate = formatJalaliDate(gregorianDate);
+            if (jalaliDate) {
+                element.textContent = jalaliDate;
+            }
+        });
+    }
+</script>
+</body>
+</html>

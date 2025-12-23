@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به سیستم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Vazirmatn', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            <!-- لوگو -->
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl text-white">🍽️</span>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">سیستم رزرواسیون غذای شرکت</h1>
+                <p class="text-gray-600 mt-2">لطفاً وارد حساب کاربری خود شوید</p>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center">
+                <span class="ml-2">⚠️</span>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <!-- فرم ورود -->
+            <form method="POST" action="/login" class="space-y-6">
+                <!-- ایمیل -->
+                <div>
+                    <label class="block text-gray-700 mb-2 font-medium">
+                        آدرس ایمیل
+                    </label>
+                    <input
+                        type="email"
+                        name="email"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="example@company.com"
+                        value="admin@company.com"
+                    >
+                </div>
+                
+                <!-- رمز عبور -->
+                <div>
+                    <label class="block text-gray-700 mb-2 font-medium">
+                        رمز عبور
+                    </label>
+                    <input
+                        type="password"
+                        name="password"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="رمز عبور خود را وارد کنید"
+                        value="Admin@123!"
+                    >
+                </div>
+                
+                <!-- دکمه ورود -->
+                <button
+                    type="submit"
+                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition duration-300 shadow-md hover:shadow-lg"
+                >
+                    ورود به سیستم
+                </button>
+            </form>
+            
+            <!-- اطلاعات تست -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h3 class="text-gray-700 font-medium mb-3">📋 اطلاعات برای تست:</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center bg-blue-50 p-3 rounded-lg">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mb-2 sm:mb-0 sm:ml-2">مدیر سیستم</span>
+                        <span class="text-gray-700">admin@company.com</span>
+                        <span class="text-gray-500 mr-auto">/ Admin@123!</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center bg-green-50 p-3 rounded-lg">
+                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mb-2 sm:mb-0 sm:ml-2">کاربر عادی</span>
+                        <span class="text-gray-700">reza@company.com</span>
+                        <span class="text-gray-500 mr-auto">/ User@123!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- کپی رایت -->
+        <div class="text-center mt-6 text-gray-600">
+            <p class="text-sm">
+                © 1402 سیستم رزرواسیون غذای شرکت
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // نمایش تاریخ شمسی در صفحه ورود
+        function showCurrentJalaliDate() {
+            const now = new Date();
+            const gy = now.getFullYear();
+            const gm = now.getMonth() + 1;
+            const gd = now.getDate();
+            
+            const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            let jy;
+            if (gy > 1600) {
+                jy = 979;
+                gy -= 1600;
+            } else {
+                jy = 0;
+                gy -= 621;
+            }
+            
+            let gy2 = (gm > 2) ? (gy + 1) : gy;
+            let days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + 
+                       (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+            jy += 33 * parseInt(days / 12053);
+            days %= 12053;
+            jy += 4 * parseInt(days / 1461);
+            days %= 1461;
+            
+            if (days > 365) {
+                jy += parseInt((days - 1) / 365);
+                days = (days - 1) % 365;
+            }
+            
+            let jm, jd;
+            if (days < 186) {
+                jm = 1 + parseInt(days / 31);
+                jd = 1 + (days % 31);
+            } else {
+                jm = 7 + parseInt((days - 186) / 30);
+                jd = 1 + ((days - 186) % 30);
+            }
+            
+            const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                          'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+            
+            console.log(`📅 امروز: ${jd} ${months[jm-1]} ${jy}`);
+        }
+        
+        document.addEventListener('DOMContentLoaded', showCurrentJalaliDate);
+    </script>
+</body>
+</html>
