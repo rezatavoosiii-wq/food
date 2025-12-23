@@ -1,0 +1,143 @@
+# jalali_calendar.py
+import jdatetime
+from datetime import datetime, timedelta
+from typing import Dict, List, Tuple
+
+class JalaliCalendar:
+    @staticmethod
+    def now() -> jdatetime.datetime:
+        """زمان حال به شمسی"""
+        return jdatetime.datetime.now()
+    
+    @staticmethod
+    def gregorian_to_jalali(gregorian_date: datetime) -> jdatetime.datetime:
+        """تبدیل میلادی به شمسی"""
+        return jdatetime.datetime.fromgregorian(datetime=gregorian_date)
+    
+    @staticmethod
+    def jalali_to_gregorian(jalali_date: jdatetime.datetime) -> datetime:
+        """تبدیل شمسی به میلادی"""
+        return jalali_date.togregorian()
+    
+    @staticmethod
+    def get_current_week() -> Dict:
+        """دریافت اطلاعات هفته جاری شمسی"""
+        today_jalali = JalaliCalendar.now()
+        
+        # پیدا کردن شنبه این هفته (در تقویم جلالی)
+        # شنبه = 6، یکشنبه = 0، دوشنبه = 1، ...
+        current_weekday = today_jalali.weekday()
+        
+        # محاسبه شنبه این هفته
+        if current_weekday == 6:  # شنبه
+            saturday = today_jalali
+        else:
+            days_to_saturday = (6 - current_weekday) % 7
+            saturday = today_jalali - timedelta(days=days_to_saturday)
+        
+        # محاسبه روزهای هفته
+        week_days = []
+        for i in range(7):
+            day = saturday + timedelta(days=i)
+            week_days.append({
+                'date': day,
+                'day_name': JalaliCalendar.get_day_name(day.weekday()),
+                'day_number': day.day,
+                'month_name': JalaliCalendar.get_month_name(day.month),
+                'full_date': day.strftime('%Y/%m/%d')
+            })
+        
+        # روزهای کاری (شنبه تا چهارشنبه)
+        work_days = week_days[:5]
+        
+        return {
+            'saturday': saturday,
+            'week_days': week_days,
+            'work_days': work_days,
+            'current_day': today_jalali
+        }
+    
+    @staticmethod
+    def get_day_name(weekday: int) -> str:
+        """نام روز هفته"""
+        days = {
+            0: 'یکشنبه',
+            1: 'دوشنبه',
+            2: 'سه‌شنبه',
+            3: 'چهارشنبه',
+            4: 'پنجشنبه',
+            5: 'جمعه',
+            6: 'شنبه'
+        }
+        return days.get(weekday, '')
+    
+    @staticmethod
+    def get_month_name(month: int) -> str:
+        """نام ماه"""
+        months = {
+            1: 'فروردین',
+            2: 'اردیبهشت',
+            3: 'خرداد',
+            4: 'تیر',
+            5: 'مرداد',
+            6: 'شهریور',
+            7: 'مهر',
+            8: 'آبان',
+            9: 'آذر',
+            10: 'دی',
+            11: 'بهمن',
+            12: 'اسفند'
+        }
+        return months.get(month, '')
+    
+    @staticmethod
+    def format_date(jalali_date: jdatetime.datetime, format_str: str = '%Y/%m/%d') -> str:
+        """فرمت‌دهی تاریخ شمسی"""
+        return jalali_date.strftime(format_str)
+    
+    @staticmethod
+    def get_next_week_dates() -> Tuple[str, str]:
+        """تاریخ‌های شروع و پایان هفته آینده"""
+        today_jalali = JalaliCalendar.now()
+        current_weekday = today_jalali.weekday()
+        
+        # پیدا کردن شنبه این هفته
+        if current_weekday == 6:  # شنبه
+            saturday = today_jalali
+        else:
+            days_to_saturday = (6 - current_weekday) % 7
+            saturday = today_jalali - timedelta(days=days_to_saturday)
+        
+        # هفته آینده
+        next_saturday = saturday + timedelta(days=7)
+        next_wednesday = next_saturday + timedelta(days=4)  # چهارشنبه
+        
+        return (
+            next_saturday.strftime('%Y-%m-%d'),
+            next_wednesday.strftime('%Y-%m-%d')
+        )
+    
+    @staticmethod
+    def get_week_deadline() -> str:
+        """مهلت رزرو برای هفته آینده (چهارشنبه ۱۸:۰۰)"""
+        today_jalali = JalaliCalendar.now()
+        current_weekday = today_jalali.weekday()
+        
+        # پیدا کردن چهارشنبه هفته آینده
+        if current_weekday <= 2:  # اگر قبل از چهارشنبه هستیم
+            days_to_wednesday = (2 - current_weekday) % 7
+            deadline_wednesday = today_jalali + timedelta(days=days_to_wednesday)
+        else:  # اگر بعد از چهارشنبه هستیم، چهارشنبه هفته آینده
+            days_to_wednesday = (2 - current_weekday) % 7 + 7
+            deadline_wednesday = today_jalali + timedelta(days=days_to_wednesday)
+        
+        # تنظیم ساعت ۱۸:۰۰
+        deadline_wednesday = deadline_wednesday.replace(hour=18, minute=0, second=0)
+        
+        # تبدیل به میلادی برای ذخیره در دیتابیس
+        gregorian_deadline = deadline_wednesday.togregorian()
+        
+        return gregorian_deadline.strftime('%Y-%m-%d %H:%M:%S')
+
+# نمونه
+jalali = JalaliCalendar()
